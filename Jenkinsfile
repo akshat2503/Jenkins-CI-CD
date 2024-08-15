@@ -2,20 +2,19 @@ pipeline {
     agent any
 
     environment {
-        PROJECT_ID = 'imposing-pager-432316-a8'
-        CLUSTER_NAME = 'cluster-test'
-        CLUSTER_ZONE = 'asia-northeast1-a'
+        PROJECT_ID = 'PROJECT_ID'
+        CLUSTER_NAME = 'CLUSTER_NAME'
+        CLUSTER_ZONE = 'CLUSTER_ZONE'
     }
 
     stages {
         stage('Authenticate with Google Cloud') {
             steps {
-                withCredentials([file(credentialsId: 'serviceAccKey', variable: 'GC_KEY')]) {
+                withCredentials([file(credentialsId: 'service-acc-cred', variable: 'GC_KEY')]) {
                     sh '''
                         gcloud auth activate-service-account --key-file="$GC_KEY"
                         gcloud config set project $PROJECT_ID
                         gcloud auth configure-docker gcr.io -q
-                        export PATH=$PATH:$HOME/bin
                     '''
                 }
             }
@@ -41,7 +40,6 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'cd akshatgautam && docker build -t gcr.io/$PROJECT_ID/portfolio-website:$BUILD_NUMBER .'
                 sh 'cd akshatgautam && docker build -t gcr.io/$PROJECT_ID/portfolio-website:latest .'
             }
         }
@@ -55,14 +53,13 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                sh 'docker push gcr.io/$PROJECT_ID/portfolio-website:$BUILD_NUMBER'
                 sh 'docker push gcr.io/$PROJECT_ID/portfolio-website:latest'
             }
         }
 
         stage('Deploy to GKE') {
             steps {
-                withCredentials([file(credentialsId: 'serviceAccKey', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                withCredentials([file(credentialsId: 'service-acc-cred', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                     sh """
                         export PATH=$PATH:$HOME/bin
                         gcloud config set project "$PROJECT_ID"
